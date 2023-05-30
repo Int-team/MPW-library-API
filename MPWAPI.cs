@@ -10,88 +10,9 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
+//* API version: 1.2
 namespace MPW
 {
-	//internal static class RectTransformExtensions
-	//{
-	//	public static void SetDefaultScale(this Transform transform)
-	//	{
-	//		transform.localScale = Vector3.one;
-	//	}
-	//	//public static void SetDefaultScale(this RectTransform transform)
-	//	//{
-	//	//	transform.localScale = new Vector3(1f, 1f, 1f);
-	//	//}
-
-	//	public static void SetPivotAndAnchorsAtPoint(this RectTransform transform, Vector2 point)
-	//	{
-	//		transform.pivot = point;
-	//		transform.anchorMin = point;
-	//		transform.anchorMax = point;
-	//	}
-	//	public static void SetPivotAndAnchors(this RectTransform transform, Vector2 pivot, Vector2 anchorMin, Vector2 anchorMax)
-	//	{
-	//		transform.pivot = pivot;
-	//		transform.anchorMin = anchorMin;
-	//		transform.anchorMax = anchorMax;
-	//	}
-
-	//	#region Get Size
-	//	public static Vector2 GetSize(this RectTransform transform)
-	//	{
-	//		return transform.rect.size;
-	//	}
-	//	public static float GetWidth(this RectTransform transform)
-	//	{
-	//		return transform.rect.width;
-	//	}
-	//	public static float GetHeight(this RectTransform transform)
-	//	{
-	//		return transform.rect.height;
-	//	}
-	//	#endregion
-
-	//	#region Set Size
-	//	public static void SetSize(this RectTransform transform, Vector2 newSize)
-	//	{
-	//		SetWidth(transform, newSize.x);
-	//		SetHeight(transform, newSize.y);
-	//	}
-	//	public static void SetWidth(this RectTransform transform, float newSize)
-	//	{
-	//		transform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, newSize);
-	//	}
-	//	public static void SetHeight(this RectTransform transform, float newSize)
-	//	{
-	//		transform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, newSize);
-	//	}
-	//	#endregion
-
-	//	#region Set Position
-	//	/*public static void SetPositionOfPivot(this RectTransform trans, Vector2 newPos) 
-	//	{
-	//		trans.localPosition = new Vector3(newPos.x, newPos.y, trans.localPosition.z);
-	//	}
-
-	//	public static void SetLeftBottomPosition(this RectTransform trans, Vector2 newPos) 
-	//	{
-	//		trans.localPosition = new Vector3(newPos.x + (trans.pivot.x * trans.rect.width), newPos.y + (trans.pivot.y * trans.rect.height), trans.localPosition.z);
-	//	}
-	//	public static void SetLeftTopPosition(this RectTransform trans, Vector2 newPos) 
-	//	{
-	//		trans.localPosition = new Vector3(newPos.x + (trans.pivot.x * trans.rect.width), newPos.y - ((1f - trans.pivot.y) * trans.rect.height), trans.localPosition.z);
-	//	}
-	//	public static void SetRightBottomPosition(this RectTransform trans, Vector2 newPos) 
-	//	{
-	//		trans.localPosition = new Vector3(newPos.x - ((1f - trans.pivot.x) * trans.rect.width), newPos.y + (trans.pivot.y * trans.rect.height), trans.localPosition.z);
-	//	}
-	//	public static void SetRightTopPosition(this RectTransform trans, Vector2 newPos) 
-	//	{
-	//		trans.localPosition = new Vector3(newPos.x - ((1f - trans.pivot.x) * trans.rect.width), newPos.y - ((1f - trans.pivot.y) * trans.rect.height), trans.localPosition.z);
-	//	}*/
-	//	#endregion
-	//}
-
 	internal static class TypeExtensions
 	{
 		#region Instance
@@ -195,7 +116,7 @@ namespace MPW
 	/// <summary>
 	/// API for working with the MPW library.
 	/// </summary>
-	public static class MPWAPI //* I hope Zooi makes a "Mod dependency system" soon.
+	internal static class MPWAPI //* I hope Zooi makes a "Mod dependency system" soon.
 	{
 		public static bool MPWFinded { get; private set; } = false;
 		private const int NumberOfSearchCycles = 20;
@@ -215,11 +136,12 @@ namespace MPW
 		private static MethodInfo CreateWindowMethod;
 		private static MethodInfo CreateWarningWindowMethod;
 		private static MethodInfo CreateWarningWindowWithButtonsMethod;
-		private static MethodInfo CreateNormalWindowMethod;
+        private static MethodInfo CreateWarningWindowWithGroupOfButtonsMethod;
+        private static MethodInfo CreateNormalWindowMethod;
 
 		private static MethodInfo CreateAdvancedButtonMethod;
 
-		private static ModMetaData ModMeta;
+		public static ModMetaData ModMeta;
 
 		#region [_]
 		/// <summary>
@@ -283,7 +205,15 @@ namespace MPW
 				typeof(UnityAction).MakeByRefType()
 
 			}, null);
-			CreateNormalWindowMethod = WindowManagerBehaviourType.GetMethod("CreateNormalWindow", BindingFlags.Static | BindingFlags.Public, null, new Type[2]
+            CreateWarningWindowWithGroupOfButtonsMethod = WindowManagerBehaviourType.GetMethod("CreateWarningWindowWithGroupOfButtons", BindingFlags.Static | BindingFlags.Public, null, new Type[4]
+            {
+                stringType,
+                spriteType,
+                stringType,
+                typeof((string, Sprite, UnityAction)[]).MakeByRefType()
+
+            }, null);
+            CreateNormalWindowMethod = WindowManagerBehaviourType.GetMethod("CreateNormalWindow", BindingFlags.Static | BindingFlags.Public, null, new Type[2]
 			{
 				stringType,
 				spriteType,
@@ -321,7 +251,7 @@ namespace MPW
 			bool dialogBoxAlreadyCreated = false;
 			if (DialogBox.IsAnyDialogboxOpen)
 			{
-				DialogBox[] dialogBoxes = GameObject.Find("/Canvas/Dialog container").GetComponentsInChildren<DialogBox>(false);
+				DialogBox[] dialogBoxes = GameObject.Find("/Canvas/Dialogbox").GetComponentsInChildren<DialogBox>(false);
 				foreach (DialogBox box in dialogBoxes)
 				{
 					if (box.Title.StartsWith("MPW library not found"))
@@ -346,7 +276,9 @@ namespace MPW
 					}),
 					new DialogButton("Cancel", true),
 				});
-			}
+				dialog.transform.localPosition = new Vector3(550f, -430f, 0f);
+
+            }
 			#endregion
 		}
 
@@ -381,19 +313,19 @@ namespace MPW
 			return (window, rectT);
 		}
 
-		/// <summary>
-		/// Creates a warning window, with added <paramref name="text"/> and a vertical layout group. The window changes to fit the size of the content.
-		/// </summary>
-		/// <param name="text">Text in the window.</param>
-		/// <returns>A tuple with a <see cref="WarningWindowShell"/> and its viewport (<see cref="RectTransform"/>).</returns>
-		/// <inheritdoc cref="CreateWindow(string, Sprite)"/>
-		public static (WarningWindowShell, RectTransform) CreateWarningWindow(in string name = null, in string text = null)
+        /// <summary>
+        /// Creates a warning window, with added <paramref name="text"/> and <see cref="VerticalLayoutGroup"/>. The window changes to fit the size of the content.
+        /// </summary>
+        /// <param name="text">Text in the window.</param>
+        /// <returns>A tuple with a <see cref="WarningWindowShell"/> and its viewport (<see cref="RectTransform"/>).</returns>
+        /// <inheritdoc cref="CreateWindow(in string, in Sprite)"/>
+        public static (WarningWindowShell, RectTransform) CreateWarningWindow(in string name = null, in string text = null)
 		{
 			return CreateWarningWindow(name, null, text);
 		}
 
-		/// <inheritdoc cref="CreateWarningWindow(string, string)"/>
-		public static (WarningWindowShell, RectTransform) CreateWarningWindow(in string name = null, in Sprite icon = null, in string text = null)
+        /// <inheritdoc cref="CreateWarningWindow(in string, in string)"/>
+        public static (WarningWindowShell, RectTransform) CreateWarningWindow(in string name = null, in Sprite icon = null, in string text = null)
 		{
 			CheckMPW();
 			(MonoBehaviour behaviour, RectTransform rectT) = ((MonoBehaviour, RectTransform)) CreateWarningWindowMethod.Invoke(null, new object[3]
@@ -411,15 +343,36 @@ namespace MPW
 		///	<summary>
 		///	Creates a warning window with <paramref name="text"/> added, 2 buttons at the bottom: Ok, Cancel and a vertical layout group. The window changes according to the size of the content.
 		///	</summary>
-		/// <inheritdoc cref="CreateWarningWindow(string, string)"/>
+		/// <inheritdoc cref="CreateWarningWindow(in string, in string)"/>
 		/// <param name="okAction">Action when the OK button is pressed.</param>
 		public static (WarningWindowShell, RectTransform) CreateWarningWindowWithButtons(in string name = "New window", in string text = null, in UnityAction okAction = null)
 		{
 			return CreateWarningWindowWithButtons(name, null, text, okAction);
 		}
 
-		///<inheritdoc cref="CreateWarningWindowWithButtons(string, string, UnityAction)"/>
-		public static (WarningWindowShell, RectTransform) CreateWarningWindowWithButtons(in string name = "New window", in Sprite icon = null, in string text = null, in UnityAction okAction = null)
+        /// <summary>
+        /// Creates a warning window, with added <paramref name="text"/> and <see cref="VerticalLayoutGroup"/>. In a vertical group, advanced buttons are created from <paramref name="buttons"/>. Buttons are placed in <see cref="HorizontalLayoutGroup"/>s of 5 pieces.
+        /// </summary>
+        /// <param name="buttons">Array with which advanced buttons are created, arguments are the same as those of method <see cref="CreateAdvancedButton(in Transform, in string, in Sprite, UnityAction)"/>.</param>	
+		/// <inheritdoc cref="CreateWarningWindow(in string, in string)"/>
+        public static (WarningWindowShell, RectTransform) CreateWarningWindowWithGroupOfButtons(in string name = "Warning", in Sprite icon = null, in string text = "", (string, Sprite, UnityAction)[] buttons = null)
+		{
+			CheckMPW();
+			(MonoBehaviour behaviour, RectTransform rectT) = ((MonoBehaviour, RectTransform)) CreateWarningWindowWithGroupOfButtonsMethod.Invoke(null, new object[4]
+			{
+				string.IsNullOrEmpty(name) ? Type.Missing : name,
+				icon ?? Type.Missing,
+				text ?? Type.Missing,
+                buttons ?? Type.Missing 
+			});
+
+			WarningWindowShell window = ScriptableObject.CreateInstance<WarningWindowShell>();
+			window.Initialize(behaviour);
+			return (window, rectT);
+		}
+
+        ///<inheritdoc cref="CreateWarningWindowWithButtons(string, string, UnityAction)"/>
+        public static (WarningWindowShell, RectTransform) CreateWarningWindowWithButtons(in string name = "New window", in Sprite icon = null, in string text = null, in UnityAction okAction = null)
 		{
 			CheckMPW();
 			(MonoBehaviour behaviour, RectTransform rectT) = ((MonoBehaviour, RectTransform)) CreateWarningWindowWithButtonsMethod.Invoke(null, new object[4]
