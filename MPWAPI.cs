@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-//* API version: 1.2
+//* API version: 1.3
 namespace MPW
 {
 	internal static class TypeExtensions
@@ -91,7 +91,6 @@ namespace MPW
 		}
 		internal static T InvokeStaticMethod<T>(this Type type, string name, params object[] args)
 		{
-			Debug.Log("InvokeStaticMethod: " + type + name + string.Concat(args));
 			MethodInfo methodInfo = type.GetMethod(name, BindingFlags.Static | BindingFlags.Public);
 			if (methodInfo == null)
 			{
@@ -119,9 +118,10 @@ namespace MPW
 	internal static class MPWAPI //* I hope Zooi makes a "Mod dependency system" soon.
 	{
 		public static bool MPWFinded { get; private set; } = false;
-		private const int NumberOfSearchCycles = 20;
+		private const int NumberOfSearchCycles = 35;
+		private static bool HasExtraTry = true;
 
-		public static Transform SelectedWindowTransform => WindowManagerBehaviourType.GetStaticPropertyValue<Transform>("SelectedWindowTransform");
+        public static Transform SelectedWindowTransform => WindowManagerBehaviourType.GetStaticPropertyValue<Transform>("SelectedWindowTransform");
 		public static MonoBehaviour[] Windows => WindowManagerBehaviourType.GetStaticPropertyValue<MonoBehaviour[]>("Windows");
 
 		public static Transform WindowsCanvas => WindowManagerBehaviourType.GetStaticFieldValue<Transform>("WindowsCanvas");
@@ -151,9 +151,9 @@ namespace MPW
 		{
 			ModMeta = ModAPI.Metadata;
 			StartSearchingMPW();
-		}
+        }
 
-		private static bool TryGetMPW()
+        private static bool TryGetMPW()
 		{
 			ModScript modScript = null;
 			foreach (KeyValuePair<ModMetaData, ModScript> pair in ModLoader.ModScripts)
@@ -277,7 +277,6 @@ namespace MPW
 					new DialogButton("Cancel", true),
 				});
 				dialog.transform.localPosition = new Vector3(550f, -430f, 0f);
-
             }
 			#endregion
 		}
@@ -286,7 +285,16 @@ namespace MPW
 		{
 			if (!MPWFinded)
 			{
-				throw new Exception("MPW library not found.");
+				if (HasExtraTry)
+				{
+					HasExtraTry = false;
+					TryGetMPW();
+					Debug.LogWarning($"Extra try spent: MPW library {(MPWFinded ? "found" : "not found")}.");
+				}
+				else
+				{
+					throw new Exception("MPW library not found.");
+				}
 			}
 		}
 		#endregion
