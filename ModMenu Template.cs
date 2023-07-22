@@ -174,7 +174,7 @@ public class ModMenu : MonoBehaviour
 
 			RectTransform settingsRoot = MPWAPI.CreateSettings<ModSettings, ModSettings.Settings>(Window.Viewport, ModSettings.CurrentSettings);
 			ScrollRect.content = settingsRoot;
-			CurrentTab.RootObject = settingsRoot.gameObject;
+			CurrentTab.RootObject = settingsRoot.parent.gameObject;
 
 			BackAction = ToMenu;
 		}

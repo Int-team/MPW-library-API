@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-//* API version: 1.3
+//* API version: 1.3.4
 namespace MPW
 {
 	internal static class TypeExtensions
@@ -120,8 +120,9 @@ namespace MPW
 		public static bool MPWFinded { get; private set; } = false;
 		private const int NumberOfSearchCycles = 35;
 		private static bool HasExtraTry = true;
+		public static event EventHandler OnMPWFinded;
 
-        public static Transform SelectedWindowTransform => WindowManagerBehaviourType.GetStaticPropertyValue<Transform>("SelectedWindowTransform");
+		public static Transform SelectedWindowTransform => WindowManagerBehaviourType.GetStaticPropertyValue<Transform>("SelectedWindowTransform");
 		public static MonoBehaviour[] Windows => WindowManagerBehaviourType.GetStaticPropertyValue<MonoBehaviour[]>("Windows");
 
 		public static Transform WindowsCanvas => WindowManagerBehaviourType.GetStaticFieldValue<Transform>("WindowsCanvas");
@@ -136,8 +137,8 @@ namespace MPW
 		private static MethodInfo CreateWindowMethod;
 		private static MethodInfo CreateWarningWindowMethod;
 		private static MethodInfo CreateWarningWindowWithButtonsMethod;
-        private static MethodInfo CreateWarningWindowWithGroupOfButtonsMethod;
-        private static MethodInfo CreateNormalWindowMethod;
+		private static MethodInfo CreateWarningWindowWithGroupOfButtonsMethod;
+		private static MethodInfo CreateNormalWindowMethod;
 
 		private static MethodInfo CreateAdvancedButtonMethod;
 
@@ -151,9 +152,21 @@ namespace MPW
 		{
 			ModMeta = ModAPI.Metadata;
 			StartSearchingMPW();
-        }
+			//Debug.LogError("!ModLoader.ModListChanged += delegate");
+			//BackgroundItemLoader.Instance.StartCoroutine(Utils.NextFrameCoroutine(() =>
+			//{
+   //             ModLoader.ModListChanged += (object sender, EventArgs e) =>
+   //             {
+   //                 for (int i = 0; i < 10; i++)
+   //                 {
+   //                     Debug.LogError("!ModLoader.ModListChanged!");
+   //                 }
+   //                 DialogBoxManager.Notification("!ModLoader.ModListChanged!");
+   //             };
+   //         }));
+		}
 
-        private static bool TryGetMPW()
+		private static bool TryGetMPW()
 		{
 			ModScript modScript = null;
 			foreach (KeyValuePair<ModMetaData, ModScript> pair in ModLoader.ModScripts)
@@ -178,6 +191,7 @@ namespace MPW
 			MPWFinded = true;
 			
 			GetMemders(modScript);
+			OnMPWFinded.Invoke(null, EventArgs.Empty);
 			return true;
 		}
 		private static void GetMemders(ModScript script)
@@ -205,15 +219,15 @@ namespace MPW
 				typeof(UnityAction).MakeByRefType()
 
 			}, null);
-            CreateWarningWindowWithGroupOfButtonsMethod = WindowManagerBehaviourType.GetMethod("CreateWarningWindowWithGroupOfButtons", BindingFlags.Static | BindingFlags.Public, null, new Type[4]
-            {
-                stringType,
-                spriteType,
-                stringType,
-                typeof((string, Sprite, UnityAction)[]).MakeByRefType()
+			CreateWarningWindowWithGroupOfButtonsMethod = WindowManagerBehaviourType.GetMethod("CreateWarningWindowWithGroupOfButtons", BindingFlags.Static | BindingFlags.Public, null, new Type[4]
+			{
+				stringType,
+				spriteType,
+				stringType,
+				typeof((string, Sprite, UnityAction)[]).MakeByRefType()
 
-            }, null);
-            CreateNormalWindowMethod = WindowManagerBehaviourType.GetMethod("CreateNormalWindow", BindingFlags.Static | BindingFlags.Public, null, new Type[2]
+			}, null);
+			CreateNormalWindowMethod = WindowManagerBehaviourType.GetMethod("CreateNormalWindow", BindingFlags.Static | BindingFlags.Public, null, new Type[2]
 			{
 				stringType,
 				spriteType,
@@ -248,7 +262,6 @@ namespace MPW
 			}
 
 			#region Check DialogBox
-			bool dialogBoxAlreadyCreated = false;
 			if (DialogBox.IsAnyDialogboxOpen)
 			{
 				DialogBox[] dialogBoxes = GameObject.Find("/Canvas/Dialogbox").GetComponentsInChildren<DialogBox>(false);
@@ -256,28 +269,24 @@ namespace MPW
 				{
 					if (box.Title.StartsWith("MPW library not found"))
 					{
-						dialogBoxAlreadyCreated = true;
 						box.DialogButtonHolder.GetChild(1).GetComponent<Button>().onClick.AddListener(StartSearchingMPW);
-						break;
+						yield break;
 					}
 				}
 			}
-			if (!dialogBoxAlreadyCreated)
+			DialogBox dialog = DialogBoxManager.Dialog("MPW library not found, you may not have subscribed to it in the workshop or it is not enabled.", new DialogButton[3]
 			{
-				DialogBox dialog = DialogBoxManager.Dialog("MPW library not found, may not be installed or enabled.", new DialogButton[3]
+				new DialogButton("Subscribe", true, () =>
 				{
-					new DialogButton("Install", true, () =>
-					{
-						OpenLink("https://steamcommunity.com/sharedfiles/filedetails/?id=2953788932");
-					}),
-					new DialogButton("Retry", true, () =>
-					{
-						StartSearchingMPW();
-					}),
-					new DialogButton("Cancel", true),
-				});
-				dialog.transform.localPosition = new Vector3(550f, -430f, 0f);
-            }
+					OpenLink("https://steamcommunity.com/sharedfiles/filedetails/?id=2953788932");
+				}),
+				new DialogButton("Retry", true, () =>
+				{
+					StartSearchingMPW();
+				}),
+				new DialogButton("Cancel", true),
+			});
+			dialog.transform.localPosition = new Vector3(550f, -430f, 0f);
 			#endregion
 		}
 
@@ -321,19 +330,19 @@ namespace MPW
 			return (window, rectT);
 		}
 
-        /// <summary>
-        /// Creates a warning window, with added <paramref name="text"/> and <see cref="VerticalLayoutGroup"/>. The window changes to fit the size of the content.
-        /// </summary>
-        /// <param name="text">Text in the window.</param>
-        /// <returns>A tuple with a <see cref="WarningWindowShell"/> and its viewport (<see cref="RectTransform"/>).</returns>
-        /// <inheritdoc cref="CreateWindow(in string, in Sprite)"/>
-        public static (WarningWindowShell, RectTransform) CreateWarningWindow(in string name = null, in string text = null)
+		/// <summary>
+		/// Creates a warning window, with added <paramref name="text"/> and <see cref="VerticalLayoutGroup"/>. The window changes to fit the size of the content.
+		/// </summary>
+		/// <param name="text">Text in the window.</param>
+		/// <returns>A tuple with a <see cref="WarningWindowShell"/> and its viewport (<see cref="RectTransform"/>).</returns>
+		/// <inheritdoc cref="CreateWindow(in string, in Sprite)"/>
+		public static (WarningWindowShell, RectTransform) CreateWarningWindow(in string name = null, in string text = null)
 		{
 			return CreateWarningWindow(name, null, text);
 		}
 
-        /// <inheritdoc cref="CreateWarningWindow(in string, in string)"/>
-        public static (WarningWindowShell, RectTransform) CreateWarningWindow(in string name = null, in Sprite icon = null, in string text = null)
+		/// <inheritdoc cref="CreateWarningWindow(in string, in string)"/>
+		public static (WarningWindowShell, RectTransform) CreateWarningWindow(in string name = null, in Sprite icon = null, in string text = null)
 		{
 			CheckMPW();
 			(MonoBehaviour behaviour, RectTransform rectT) = ((MonoBehaviour, RectTransform)) CreateWarningWindowMethod.Invoke(null, new object[3]
@@ -358,12 +367,12 @@ namespace MPW
 			return CreateWarningWindowWithButtons(name, null, text, okAction);
 		}
 
-        /// <summary>
-        /// Creates a warning window, with added <paramref name="text"/> and <see cref="VerticalLayoutGroup"/>. In a vertical group, advanced buttons are created from <paramref name="buttons"/>. Buttons are placed in <see cref="HorizontalLayoutGroup"/>s of 5 pieces.
-        /// </summary>
-        /// <param name="buttons">Array with which advanced buttons are created, arguments are the same as those of method <see cref="CreateAdvancedButton(in Transform, in string, in Sprite, UnityAction)"/>.</param>	
+		/// <summary>
+		/// Creates a warning window, with added <paramref name="text"/> and <see cref="VerticalLayoutGroup"/>. In a vertical group, advanced buttons are created from <paramref name="buttons"/>. Buttons are placed in <see cref="HorizontalLayoutGroup"/>s of 5 pieces.
+		/// </summary>
+		/// <param name="buttons">Array with which advanced buttons are created, arguments are the same as those of method <see cref="CreateAdvancedButton(in Transform, in string, in Sprite, UnityAction)"/>.</param>	
 		/// <inheritdoc cref="CreateWarningWindow(in string, in string)"/>
-        public static (WarningWindowShell, RectTransform) CreateWarningWindowWithGroupOfButtons(in string name = "Warning", in Sprite icon = null, in string text = "", (string, Sprite, UnityAction)[] buttons = null)
+		public static (WarningWindowShell, RectTransform) CreateWarningWindowWithGroupOfButtons(in string name = "Warning", in Sprite icon = null, in string text = "", (string, Sprite, UnityAction)[] buttons = null)
 		{
 			CheckMPW();
 			(MonoBehaviour behaviour, RectTransform rectT) = ((MonoBehaviour, RectTransform)) CreateWarningWindowWithGroupOfButtonsMethod.Invoke(null, new object[4]
@@ -371,7 +380,7 @@ namespace MPW
 				string.IsNullOrEmpty(name) ? Type.Missing : name,
 				icon ?? Type.Missing,
 				text ?? Type.Missing,
-                buttons ?? Type.Missing 
+				buttons ?? Type.Missing 
 			});
 
 			WarningWindowShell window = ScriptableObject.CreateInstance<WarningWindowShell>();
@@ -379,8 +388,8 @@ namespace MPW
 			return (window, rectT);
 		}
 
-        ///<inheritdoc cref="CreateWarningWindowWithButtons(string, string, UnityAction)"/>
-        public static (WarningWindowShell, RectTransform) CreateWarningWindowWithButtons(in string name = "New window", in Sprite icon = null, in string text = null, in UnityAction okAction = null)
+		///<inheritdoc cref="CreateWarningWindowWithButtons(string, string, UnityAction)"/>
+		public static (WarningWindowShell, RectTransform) CreateWarningWindowWithButtons(in string name = "New window", in Sprite icon = null, in string text = null, in UnityAction okAction = null)
 		{
 			CheckMPW();
 			(MonoBehaviour behaviour, RectTransform rectT) = ((MonoBehaviour, RectTransform)) CreateWarningWindowWithButtonsMethod.Invoke(null, new object[4]
@@ -444,6 +453,7 @@ namespace MPW
 		/// MPWMenuIcon <br/>
 		/// MPWSettingsIcon <br/>
 		/// SettingsIcon <br/>
+		/// InfoIcon <br/>
 		/// </remarks>
 		/// <returns>
 		/// Found <see cref="Sprite"/>, if not found, returns None sprite (red question mark).
@@ -489,21 +499,21 @@ namespace MPW
 			return MPWUIBuilderType.InvokeStaticMethod<ScrollRect>("CreateScrollRect", new Type[1] { typeof(Transform).MakeByRefType()}, parent);
 		}
 
-		/// <summary>
-		/// Method for creating settings.
-		/// </summary>
-		/// <remarks>
-		/// Settings can have tags, they are written via <c>|</c> after the header.
-		/// <code>
-		/// [<see cref="SettingAttribute"/>(<see cref="SettingCategory.General"/>, "title|/category name/settings goup|order(from 0)")]
-		/// </code>
-		/// </remarks>
-		/// <typeparam name="C">The class type in which the <c>Save()</c> and <c>ResetSettings()</c> methods are declared.</typeparam>
-		/// <typeparam name="S">Class with settings. All public fields, properties and methods with <see cref="SettingAttribute"/> will be used to create settings.</typeparam>
-		/// <param name="parent">The parent of the settings root.</param>
-		/// <param name="settings">The current instance of the settings class.</param>
-		/// <returns>The settings root, which is the parent object for a <see cref="VerticalLayoutGroup"/> with settings and a <see cref="HorizontalLayoutGroup"/> with Save and Reset buttons.</returns>
-		public static RectTransform CreateSettings<C, S>(in Transform parent, S settings) where C : class where S : class
+        /// <summary>
+        /// Method for creating settings.
+        /// </summary>
+        /// <remarks>
+        /// Settings can have tags, they are written via <c>|</c> after the header. Are optional.
+        /// <code>
+        /// [<see cref="SettingAttribute"/>(<see cref="SettingCategory.General"/>, "title|/category name #order(from 0)/settings goup #order|order", "optional setting description")]
+        /// </code>
+        /// </remarks>
+        /// <typeparam name="C">The class type in which the <c>Save()</c> and <c>ResetSettings()</c> methods are declared.</typeparam>
+        /// <typeparam name="S">Class with settings. All public fields, properties and methods with <see cref="SettingAttribute"/> will be used to create settings.</typeparam>
+        /// <param name="parent">The parent of the settings root.</param>
+        /// <param name="settings">The current instance of the settings class.</param>
+        /// <returns>The settings root, which is the parent object for a <see cref="VerticalLayoutGroup"/> with settings and a <see cref="HorizontalLayoutGroup"/> with Save and Reset buttons.</returns>
+        public static RectTransform CreateSettings<C, S>(in Transform parent, S settings) where C : class where S : class
 		{
 			CheckMPW();
 
@@ -515,7 +525,7 @@ namespace MPW
 		/// Creates a <see cref="VerticalLayoutGroup"/> with categories that have a colored bar on the left.
 		/// </summary>
 		/// <param name="parent"></param>
-		/// <param name="changelog">An array with categories <c>(<see langword="string"/> category name, <see cref="Color"/> bar color, changes array)</c>, inside which there are arrays with changes <c><see langword="string"/> text</c>.</param>
+		/// <param name="changelog">Array with categories and arrays of changes in them <c>(<see langword="string"/> category name, <see cref="Color"/> bar color, <see langword="string"/>[] changes array)</c>.</param>
 		/// <returns></returns>
 		public static RectTransform CreateChangelog(in Transform parent, in (string, Color, string[])[] changelog)
 		{
@@ -525,6 +535,23 @@ namespace MPW
 			{
 				typeof(Transform).MakeByRefType(),
 				typeof((string, Color, string[])[]).MakeByRefType()
+
+			}, parent, changelog);
+		}
+		/// <summary>
+		/// Creates a <see cref="VerticalLayoutGroup"/> with categories that have a thin white bar on the left.
+		/// </summary>
+		/// <param name="parent"></param>
+		/// <param name="changelog">Array with categories and arrays of changes in them <c>(<see langword="string"/> category name, <see langword="string"/>[] changes array)</c>.</param>
+		/// <returns></returns>
+		public static RectTransform CreateChangelogWhiteLines(in Transform parent, in (string, string[])[] changelog)
+		{
+			CheckMPW();
+
+			return MPWUIBuilderType.InvokeStaticMethod<RectTransform>("CreateChangelogWhiteLines", new Type[2]
+			{
+				typeof(Transform).MakeByRefType(),
+				typeof((string, string[])[]).MakeByRefType()
 
 			}, parent, changelog);
 		}
@@ -548,10 +575,29 @@ namespace MPW
 
 			}, parent, categorysTuple, onButtonPressed);
 		}
-		#endregion
+        /// <summary>
+        /// Creates info and immediately opens the text of the button specified in the <paramref name="buttonPath"/>, if the button is not found, then it does not open.
+        /// </summary>
+        /// <param name="buttonPath">Tuple (<see langword="string"/> category name, <see langword="string"/> button name)</param>
+        /// <inheritdoc cref="CreateInfo(in Transform, in ValueTuple{string, ValueTuple{string, Sprite, bool, string}[]}[], Action{ValueTuple{string, Sprite, bool, string}})"/>
+        /// <returns></returns>
+        public static (RectTransform, RectTransform) CreateInfoAndOpenButton(in Transform parent, in (string, string) buttonPath, in (string, (string, Sprite, bool, string)[])[] categorysTuple, Action<(string, Sprite, bool, string)> onButtonPressed)
+		{
+            CheckMPW();
 
-		#region Other
-		public static void OpenLink(string url)
+            return MPWUIBuilderType.InvokeStaticMethod<(RectTransform, RectTransform)>("CreateInfoAndOpenButton", new Type[4]
+            {
+                typeof(Transform).MakeByRefType(),
+				typeof((string, string)).MakeByRefType(),
+                typeof((string, (string, Sprite, bool, string)[])[]).MakeByRefType(),
+                typeof(Action<(string, Sprite, bool, string)>)
+
+            }, parent, buttonPath, categorysTuple, onButtonPressed);
+        }
+        #endregion
+
+        #region Other
+        public static void OpenLink(string url)
 		{
 			typeof(Utils).GetMethod("OpenURL", BindingFlags.Public | BindingFlags.Static).Invoke(null, new object[1] { url });
 		}
